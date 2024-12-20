@@ -55,16 +55,49 @@ int main(int argc, char **argv){
     memset(operand, 0, sizeof(char) * MAX_LINE_LENGTH);
 
     while(fgets(line, MAX_LINE_LENGTH, read) != NULL){
+
+        printf("iteration: %d\n", line_num);
         
         as65_line info = parse_line(line);
+
+        /* If opcode is NULL (comment) then continue */
+        if(!info.opcode){
+            continue;
+        }
+
+        if(!strcmp(info.opcode, "err")){
+            printf("as65: error at line %d\n", line_num);
+            return 1;
+        }
 
         printf("opcode: %s\noperand1: %s\noperand2: %s\n", info.opcode, info.operand1, info.operand2);
 
         if(check_instruction(info.opcode, info.operand1, info.operand2) == -1){
             printf("as65: error at line %d\n", line_num);
+            return 1;
         }
 
-        get_instruction_binary(info.opcode, info.operand1, info.operand2);
+        int instruction = get_instruction_binary(info.opcode, info.operand1, info.operand2);
+
+        if(instruction == -1){
+            as65_log(LOG_ERROR, "Encountered error, stopping");
+            return 1;
+        }
+
+        printf("instruction: 0x%x\n", instruction);
+
+        if(instruction > 0xFFFF){
+            /* Swap endianess */
+            uint64_t new = (instruction & 0x0000FF) << 16 | (instruction & 0x00FF00) | (instruction & 0xFF0000) >> 16;
+            printf("instruction & 0xff: %x\ninstruction & 0xff00: %x\ninstruction & 0xff0000: %x\n", (instruction & 0x0000FF), (instruction & 0x00FF00), (instruction & 0xFF0000));
+            printf("instruction swap: 0x%lx\n", new);
+            fwrite(&new, 1, 3, binary);
+        }else if (instruction > 0xFF) {
+            uint16_t new = __bswap_16(instruction);
+            fwrite(&new, 1, 2, binary);
+        }else {
+            fwrite(&instruction, 1, 1, binary);
+        }
 
         line_num++;
 

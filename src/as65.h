@@ -119,6 +119,10 @@ int check_instruction(char *opcode, char *operand1, char *operand2);
 
 int get_instruction_binary(char *opcode, char *operand1, char *operand2);
 
+int parse_number(char *buffer, int index);
+
+void str_to_lower(char *str);
+
 
 #endif
 
