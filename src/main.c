@@ -8,17 +8,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "as65.h"
+#include "kas65.h"
 
 /* Returns instruction */
-as65_instruction_info get_instruction(char *str){
+kas65_instruction_info get_instruction(char *str){
     for(size_t i = 0; i < INSTRUCTION_COUNT; i++){
         if(!strcmp(opcode_array[i].str, str)){
             return opcode_array[i];
         }
     }
 
-    return (as65_instruction_info){NULL, 0};
+    return (kas65_instruction_info){NULL, 0};
 }
 
 
@@ -30,7 +30,7 @@ int main(int argc, char **argv){
 
     if(!read){
         int error = errno;
-        printf("as65: %s: %s", argv[1], strerror(error));
+        printf("kas65: %s: %s", argv[1], strerror(error));
         return 1;
     }
 
@@ -38,7 +38,7 @@ int main(int argc, char **argv){
 
     if(!binary){
         int error = errno;
-        printf("as65: %s: %s", argv[2], strerror(error));
+        printf("kas65: %s: %s", argv[2], strerror(error));
         return 1;
     }
 
@@ -58,7 +58,7 @@ int main(int argc, char **argv){
 
         printf("iteration: %d\n", line_num);
         
-        as65_line info = parse_line(line);
+        kas65_line info = parse_line(line);
 
         /* If opcode is NULL (comment) then continue */
         if(!info.opcode){
@@ -66,21 +66,21 @@ int main(int argc, char **argv){
         }
 
         if(!strcmp(info.opcode, "err")){
-            printf("as65: error at line %d\n", line_num);
+            printf("kas65: error at line %d\n", line_num);
             return 1;
         }
 
         printf("opcode: %s\noperand1: %s\noperand2: %s\n", info.opcode, info.operand1, info.operand2);
 
         if(check_instruction(info.opcode, info.operand1, info.operand2) == -1){
-            printf("as65: error at line %d\n", line_num);
+            printf("kas65: error at line %d\n", line_num);
             return 1;
         }
 
         int instruction = get_instruction_binary(info.opcode, info.operand1, info.operand2);
 
         if(instruction == -1){
-            as65_log(LOG_ERROR, "Encountered error, stopping");
+            kas65_log(LOG_ERROR, "Encountered error, stopping");
             return 1;
         }
 

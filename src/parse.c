@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <byteswap.h>
-#include "as65.h"
+#include "kas65.h"
 
 #define OPCODE_CHAR     3   
 #define OPERAND_CHAR    9
@@ -21,14 +21,14 @@ void remove_whitespace(char *buffer){
     }
 }
 
-as65_line parse_line(char *buffer){
+kas65_line parse_line(char *buffer){
     remove_whitespace(buffer);
 
     printf("buffer: %s\n", buffer);
 
     if(buffer[0] == ';'){
         /* Comment */
-        return (as65_line){NULL, NULL, NULL};
+        return (kas65_line){NULL, NULL, NULL};
     }
 
     char *opcode = malloc(sizeof(char) * OPCODE_CHAR+1);
@@ -39,7 +39,7 @@ as65_line parse_line(char *buffer){
 
     if(opcode[0] == 10){
         /* Empty line */
-        return (as65_line){NULL, NULL, NULL};
+        return (kas65_line){NULL, NULL, NULL};
     }
     
     memset(operand1, 0, OPERAND_CHAR);
@@ -75,8 +75,8 @@ as65_line parse_line(char *buffer){
         if(second_operand == false){
 
             if(j > OPERAND_CHAR){
-                printf("as65: First operand length is over limit (%d)\n", OPERAND_CHAR);
-                return (as65_line){"err", "err", "err"};
+                printf("kas65: First operand length is over limit (%d)\n", OPERAND_CHAR);
+                return (kas65_line){"err", "err", "err"};
             }
 
             operand1[j] = buffer[i];
@@ -85,8 +85,8 @@ as65_line parse_line(char *buffer){
         }else{
 
             if(k > OPERAND_CHAR){
-                printf("as65: Second operand length is over limit (%d)\n", OPERAND_CHAR);
-                return (as65_line){"err", "err", "err"};
+                printf("kas65: Second operand length is over limit (%d)\n", OPERAND_CHAR);
+                return (kas65_line){"err", "err", "err"};
             }
 
             operand2[k] = buffer[i];
@@ -119,7 +119,7 @@ as65_line parse_line(char *buffer){
         operand2 = NULL;
     }
 
-    return (as65_line){opcode, operand1, operand2};
+    return (kas65_line){opcode, operand1, operand2};
 }
 
 /* Checks instruction for syntax errors */
@@ -152,24 +152,24 @@ int check_instruction(char *opcode, char *operand1, char *operand2){
             found = true;
 
             if((opcode_array[i].implied == 0) && !operand1){
-                as65_log(LOG_ERROR, "Expected operand");
+                kas65_log(LOG_ERROR, "Expected operand");
                 goto error;
             }
 
             if(opcode_array[i].implied != 0 && operand1){
-                as65_log(LOG_ERROR, "Operand not expected");
+                kas65_log(LOG_ERROR, "Operand not expected");
                 goto error;
             }
 
             if(temp_operand1[0] != '$' && temp_operand1[0] != '(' && opcode_array[i].implied == 0){
-                as65_log(LOG_ERROR, "Unexpected operand value");
-                printf("as65: Unexpected character '%c' as operand\n", temp_operand1[0]);
+                kas65_log(LOG_ERROR, "Unexpected operand value");
+                printf("kas65: Unexpected character '%c' as operand\n", temp_operand1[0]);
                 goto error;
             }
 
             if(temp_operand1[0] == '(' && (opcode_array[i].indirect == 0 || opcode_array[i].indirectX == 0 || opcode_array[i].indirectY == 0) == 0){
-                as65_log(LOG_ERROR, "Unexpected indirect addressing");
-                printf("as65: Unexpected '(' in operand\n");
+                kas65_log(LOG_ERROR, "Unexpected indirect addressing");
+                printf("kas65: Unexpected '(' in operand\n");
                 goto error;
             }else if(temp_operand1[0] == '('){
                 /* Indirect and Indirect Y */
@@ -184,7 +184,7 @@ int check_instruction(char *opcode, char *operand1, char *operand2){
                     }
                     /* Didn't find closing bracket */
                     if(!ok){
-                        as65_log(LOG_ERROR, "Expected closing bracket in first operand");
+                        kas65_log(LOG_ERROR, "Expected closing bracket in first operand");
                         goto error;
                     }
                 }else if(opcode_array[i].indirectX != 0 && temp_operand2[0] == 'x'){
@@ -198,7 +198,7 @@ int check_instruction(char *opcode, char *operand1, char *operand2){
                     }
                     /* Didn't find closing bracket */
                     if(!ok){
-                        as65_log(LOG_ERROR, "Expected closing bracket in second operand");
+                        kas65_log(LOG_ERROR, "Expected closing bracket in second operand");
                         goto error;
                     }   
                 }
@@ -206,7 +206,7 @@ int check_instruction(char *opcode, char *operand1, char *operand2){
             }
 
             if(temp_operand1[0] == '(' && (opcode_array[i].indirectX != 0 && opcode_array[i].indirectY != 0) && !operand2){
-                as65_log(LOG_ERROR, "Expected either X or Y as operand");
+                kas65_log(LOG_ERROR, "Expected either X or Y as operand");
                 goto error;           
             }
 
@@ -215,33 +215,33 @@ int check_instruction(char *opcode, char *operand1, char *operand2){
                                             ||   opcode_array[i].zeropage != 0 || opcode_array[i].zeropageX != 0
                                             ||   opcode_array[i].zeropageY != 0)) && opcode_array[i].immediate == 0 && opcode_array[i].indirect == 0){
 
-                as65_log(LOG_ERROR, "Expected address");
-                printf("as65: Expected '$', got '%c'\n", temp_operand1[0]);
+                kas65_log(LOG_ERROR, "Expected address");
+                printf("kas65: Expected '$', got '%c'\n", temp_operand1[0]);
                 goto error;                        
             }
 
             if(temp_operand1[1] == '#' && opcode_array[i].immediate == 0){
-                as65_log(LOG_ERROR, "Instruction does not take in literal (#)");
+                kas65_log(LOG_ERROR, "Instruction does not take in literal (#)");
                 goto error;
             } 
 
             if((opcode_array[i].zeropageX == 0 && opcode_array[i].absoluteX == 0 && opcode_array[i].indirectX == 0) && tolower(temp_operand2[0]) == 'x'){
-                as65_log(LOG_ERROR, "X not expected as operand");
+                kas65_log(LOG_ERROR, "X not expected as operand");
                 goto error;
             }
 
             if((opcode_array[i].zeropageY == 0 && opcode_array[i].absoluteY == 0 && opcode_array[i].indirectY == 0) && tolower(temp_operand2[0]) == 'y'){
-                as65_log(LOG_ERROR, "Y not expected as operand");
+                kas65_log(LOG_ERROR, "Y not expected as operand");
                 goto error;
             }
 
             if(tolower(temp_operand2[0]) == 'a' && opcode_array[i].accumulator == 0){
-                as65_log(LOG_ERROR, "A not expected as operand");
+                kas65_log(LOG_ERROR, "A not expected as operand");
                 goto error;
             }
 
             if(temp_operand1[0] == '(' && (opcode_array[i].indirect == 0 && opcode_array[i].indirectX == 0 && opcode_array[i].indirectY == 0)){
-                as65_log(LOG_ERROR, "Indirect addressing not expected (brackets)");
+                kas65_log(LOG_ERROR, "Indirect addressing not expected (brackets)");
                 goto error;
             }
         }
@@ -251,7 +251,7 @@ int check_instruction(char *opcode, char *operand1, char *operand2){
     if(found){
         return 0;
     }else{
-        printf("as65: Invalid opcode '%s'\n", opcode); 
+        printf("kas65: Invalid opcode '%s'\n", opcode); 
     }
 
     error:
@@ -295,12 +295,12 @@ int get_instruction_binary(char *opcode, char *operand1, char *operand2){
 
                 if(!operand2){
                     if(result < 0){
-                        as65_log(LOG_ERROR, "Invalid negative address");
-                        printf("as65: Valid addresses are from 0-65536, got %d\n", result);
+                        kas65_log(LOG_ERROR, "Invalid negative address");
+                        printf("kas65: Valid addresses are from 0-65536, got %d\n", result);
                         return -1;
                     }else if(result > 0xffff){
-                        as65_log(LOG_ERROR, "Operand too big");
-                        printf("as65: Expected operand no more than 0xffff, got 0x%x\n", result); 
+                        kas65_log(LOG_ERROR, "Operand too big");
+                        printf("kas65: Expected operand no more than 0xffff, got 0x%x\n", result); 
                     }
 
                     ret = opcode_array[i].indirect << 16;
@@ -308,12 +308,12 @@ int get_instruction_binary(char *opcode, char *operand1, char *operand2){
                     ret |= result;
                 }else if(operand2[0] == 'x'){
                     if(result < 0){
-                        as65_log(LOG_ERROR, "Invalid negative address");
-                        printf("as65: Valid addresses are from 0-255, got %d\n", result);
+                        kas65_log(LOG_ERROR, "Invalid negative address");
+                        printf("kas65: Valid addresses are from 0-255, got %d\n", result);
                         return -1;
                     }else if(result > 0xff){
-                        as65_log(LOG_ERROR, "Operand too big");
-                        printf("as65: Expected operand no more than 255, got %d\n", result); 
+                        kas65_log(LOG_ERROR, "Operand too big");
+                        printf("kas65: Expected operand no more than 255, got %d\n", result); 
                     }
 
                     ret = opcode_array[i].indirectX << 8;
@@ -323,19 +323,19 @@ int get_instruction_binary(char *opcode, char *operand1, char *operand2){
                     ret |= result;                    
                 }else if(operand2[0] == 'y'){
                     if(result < 0){
-                        as65_log(LOG_ERROR, "Invalid negative address");
-                        printf("as65: Valid addresses are from 0-255, got %d\n", result);
+                        kas65_log(LOG_ERROR, "Invalid negative address");
+                        printf("kas65: Valid addresses are from 0-255, got %d\n", result);
                         return -1;
                     }else if(result > 0xff){
-                        as65_log(LOG_ERROR, "Operand too big");
-                        printf("as65: Expected operand no more than 255, got %d\n", result); 
+                        kas65_log(LOG_ERROR, "Operand too big");
+                        printf("kas65: Expected operand no more than 255, got %d\n", result); 
                     }
 
                     ret = opcode_array[i].indirectY << 8;
 
                     ret |= result;                        
                 }else{
-                    as65_log(LOG_ERROR, "Unexpected character as second operand");
+                    kas65_log(LOG_ERROR, "Unexpected character as second operand");
                     printf("Expected either X or Y, got %c\n", operand2[0]);
                 }
 
@@ -349,12 +349,12 @@ int get_instruction_binary(char *opcode, char *operand1, char *operand2){
                 int result = parse_number(operand1, 2);
 
                 if(result < 0){
-                    as65_log(LOG_ERROR, "Invalid negative value");
-                    printf("as65: Valid values are from 0-255, got %d\n", result);
+                    kas65_log(LOG_ERROR, "Invalid negative value");
+                    printf("kas65: Valid values are from 0-255, got %d\n", result);
                     return -1;
                 }else if(result > 255){
-                    as65_log(LOG_ERROR, "Operand too big");
-                    printf("as65: Expected operand no more than 255, got %d\n", result); 
+                    kas65_log(LOG_ERROR, "Operand too big");
+                    printf("kas65: Expected operand no more than 255, got %d\n", result); 
                 }
 
                 int ret = opcode_array[i].immediate << 8;
@@ -370,12 +370,12 @@ int get_instruction_binary(char *opcode, char *operand1, char *operand2){
                 printf("result: %d\n", result);
 
                 if(result > 0xFFFF){
-                    as65_log(LOG_ERROR, "Operand too big");
-                    printf("as65: Expected operand less than 0xffff, got 0x%x\n", result);
+                    kas65_log(LOG_ERROR, "Operand too big");
+                    printf("kas65: Expected operand less than 0xffff, got 0x%x\n", result);
                     return -1;
                 }else if(result < -128){
-                    as65_log(LOG_ERROR, "Operand too big");
-                    printf("as65: Expected operand more than -128, got %d\n", result);   
+                    kas65_log(LOG_ERROR, "Operand too big");
+                    printf("kas65: Expected operand more than -128, got %d\n", result);   
                     return -1;                 
                 }
 
@@ -408,7 +408,7 @@ int get_instruction_binary(char *opcode, char *operand1, char *operand2){
                             }else if(!strcmp(operand2, "y")){
                                 ret = opcode_array[i].absoluteY << 16;
                             }else{
-                                as65_log(LOG_ERROR, "Expected either x or y as operand");
+                                kas65_log(LOG_ERROR, "Expected either x or y as operand");
                                 return -1;
                             }
                         }else{
@@ -422,7 +422,7 @@ int get_instruction_binary(char *opcode, char *operand1, char *operand2){
 
                         return ret;
                     }else{
-                        as65_log(LOG_ERROR, "Unexpected two byte operand");
+                        kas65_log(LOG_ERROR, "Unexpected two byte operand");
                         return -1;
                     }
 
@@ -432,11 +432,11 @@ int get_instruction_binary(char *opcode, char *operand1, char *operand2){
                         int result = parse_number(operand1, 1);
 
                         if(result < -128){
-                            as65_log(LOG_ERROR, "Operand too big");
-                            printf("as65: Expected operand no less than -128, got %d\n", result);
+                            kas65_log(LOG_ERROR, "Operand too big");
+                            printf("kas65: Expected operand no less than -128, got %d\n", result);
                         }else if(result > 127){
-                            as65_log(LOG_ERROR, "Operand too big");
-                            printf("as65: Expected operand no more than 127, got %d\n", result); 
+                            kas65_log(LOG_ERROR, "Operand too big");
+                            printf("kas65: Expected operand no more than 127, got %d\n", result); 
                         }
 
                         int ret = opcode_array[i].relative << 8;
@@ -449,12 +449,12 @@ int get_instruction_binary(char *opcode, char *operand1, char *operand2){
                         int result = parse_number(operand1, 1);
 
                         if(result < 0){
-                            as65_log(LOG_ERROR, "Invalid negative address");
-                            printf("as65: Valid addresses are from 0-255, got %d\n", result);
+                            kas65_log(LOG_ERROR, "Invalid negative address");
+                            printf("kas65: Valid addresses are from 0-255, got %d\n", result);
                             return -1;
                         }else if(result > 255){
-                            as65_log(LOG_ERROR, "Operand too big");
-                            printf("as65: Expected operand no more than 255, got %d\n", result); 
+                            kas65_log(LOG_ERROR, "Operand too big");
+                            printf("kas65: Expected operand no more than 255, got %d\n", result); 
                         }
 
                         int ret = opcode_array[i].zeropage << 8;
@@ -464,19 +464,19 @@ int get_instruction_binary(char *opcode, char *operand1, char *operand2){
                         return ret;
                     }else if(opcode_array[i].zeropageX != 0 || opcode_array[i].zeropageY != 0){
                         if(!operand2){
-                            as65_log(LOG_ERROR, "Expected second operand");
+                            kas65_log(LOG_ERROR, "Expected second operand");
                             return -1;
                         }
 
                         int result = parse_number(operand1, 1);
 
                         if(result < 0){
-                            as65_log(LOG_ERROR, "Invalid negative address");
-                            printf("as65: Valid addresses are from 0-255, got %d\n", result);
+                            kas65_log(LOG_ERROR, "Invalid negative address");
+                            printf("kas65: Valid addresses are from 0-255, got %d\n", result);
                             return -1;
                         }else if(result > 255){
-                            as65_log(LOG_ERROR, "Operand too big");
-                            printf("as65: Expected operand no more than 255, got %d\n", result); 
+                            kas65_log(LOG_ERROR, "Operand too big");
+                            printf("kas65: Expected operand no more than 255, got %d\n", result); 
                         }
 
                         int ret = 0;
@@ -489,8 +489,8 @@ int get_instruction_binary(char *opcode, char *operand1, char *operand2){
                                 ret = opcode_array[i].zeropageY << 8;
                                 break;
                             default:
-                                as65_log(LOG_ERROR, "Unexpected operand");
-                                printf("as65: Expected either X or Y as second operand, got %c\n", operand2[0]);
+                                kas65_log(LOG_ERROR, "Unexpected operand");
+                                printf("kas65: Expected either X or Y as second operand, got %c\n", operand2[0]);
                                 return -1;             
                         }
 
@@ -500,7 +500,7 @@ int get_instruction_binary(char *opcode, char *operand1, char *operand2){
 
                         return ret;                      
                     }else{
-                        as65_log(LOG_ERROR, "Unexpected one byte operand, expected atleast two bytes");
+                        kas65_log(LOG_ERROR, "Unexpected one byte operand, expected atleast two bytes");
                         return -1;
                     }
                 }
@@ -529,13 +529,13 @@ int parse_number(char *buffer, int index){
     int result = strtol(nptr, endptr, 0);
 
     if(buffer[0+index] == '0' && buffer[1+index] != 'x'){
-        as65_log(LOG_WARN, "0 at the beginning of operand, interpreting as octal\n");
+        kas65_log(LOG_WARN, "0 at the beginning of operand, interpreting as octal\n");
     }
 
     /* If not parsed correctly then throw error */
     if(!(**endptr == 0 && result != 0)){
-        as65_log(LOG_ERROR, "Expected number");
-        printf("as65: Unexpected character '%c'\n", **endptr);
+        kas65_log(LOG_ERROR, "Expected number");
+        printf("kas65: Unexpected character '%c'\n", **endptr);
 
         result = -1;
 
@@ -559,5 +559,5 @@ void str_to_lower(char *str){
 /* Checks if a instruction is a builtin, if it is then parse it and change
     program state depending on that */
 int parse_builtin(char *opcode, char *operand1, char *operand2){
-    
+
 }

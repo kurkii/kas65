@@ -1,15 +1,15 @@
 #include <stdint.h>
 
-#ifndef AS65_H
-#define AS65_H
+#ifndef KAS65_H
+#define KAS65_H
 
-typedef struct as65_line {
+typedef struct kas65_line {
     char *opcode;
     char *operand1;
     char *operand2;
-} as65_line;
+} kas65_line;
 
-typedef struct as65_instruction_info {
+typedef struct kas65_instruction_info {
     char *str;
     /* Opcodes for the different addressing modes, 0 if specific addressing is unavailable. */
     uint8_t immediate;
@@ -25,12 +25,12 @@ typedef struct as65_instruction_info {
     uint8_t implied;
     uint8_t indirect;
     uint8_t zeropageY;
-} as65_instruction_info;
+} kas65_instruction_info;
 
 #define MAX_LINE_LENGTH     4096
 #define INSTRUCTION_COUNT   55
 
-static as65_instruction_info opcode_array[] = {
+static kas65_instruction_info opcode_array[] = {
     {"adc", 0x69, 0x65, 0x75, 0x6D, 0x7D, 0x79, 0x61, 0x71, 0x00, 0x00, 0x00, 0x00, 0x00},
     {"and", 0x29, 0x25, 0x35, 0x2D, 0x3D, 0x39, 0x21, 0x31, 0x00, 0x00, 0x00, 0x00, 0x00},
     {"asl", 0x00, 0x06, 0x16, 0x0E, 0x1E, 0x00, 0x00, 0x00, 0x00, 0xA0, 0x00, 0x00, 0x00},
@@ -111,9 +111,9 @@ enum {
     ZEROPAGEY
 };
 
-void as65_log(int err, char* msg);
+void kas65_log(int err, char* msg);
 
-as65_line parse_line(char *buffer);
+kas65_line parse_line(char *buffer);
 
 int check_instruction(char *opcode, char *operand1, char *operand2);
 
