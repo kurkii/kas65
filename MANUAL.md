@@ -2,14 +2,28 @@
 
 kas65 is an assembler for the 6502 microprocessor. It implements every instruction and addressing mode specified by the architecture
 
+## Addressing modes
+
+### Accumulator
+`opc, a`
+### Absolute
+`opc $llhh`
+### Immediate
+`opc #$xx`
+### Implied
+`opc`
+### Indirect
+`opc ($llhh)`
+### Relative
+`opc @$zz`
+### Zeropage
+`opc %$ll`
 ## Labels
 Labels in kas65 are specified by the `.lb` directive, like so:
 
 `.lb <name>:`
 
 They must be placed on a new line on its own, seperate from source code
-
-Label names are case insensitive, so `label` and `LABEL` are the same label
 
 Labels are dereferenced with `[ ]` brackets
 
@@ -47,7 +61,7 @@ With the `%db` directive you can insert either a byte (8-bit), word (16-bit), tr
 
 ### `%bc` - Byte constant
 
-Defines a constant which holds a byte value:
+Defines a constant which holds a byte (8-bit) value:
 
 `%bc <name>, <value>`
 
@@ -58,12 +72,24 @@ Defines a constant which holds a byte value:
 
 ### `%wc` - Word constant
 
-Defines a constant which holds a word value:
+Defines a constant which holds a word (16-bit) value:
 
 `%wc <name>, <value>`
 
 ```
 0000:   %wc my_constant, 0xffff
+0000:   ldx $#{my_constant}
+
+```
+
+### `%tc` - Tribyte constant
+
+Defines a constant which holds a tribyte (24-bit) value:
+
+`%tc <name>, <value>`
+
+```
+0000:   %wc my_constant, 0xffffff
 0000:   ldx $#{my_constant}
 
 ```

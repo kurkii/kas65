@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifndef KAS65_H
@@ -27,7 +28,16 @@ typedef struct kas65_instruction_info {
     uint8_t zeropageY;
 } kas65_instruction_info;
 
-#define MAX_LINE_LENGTH     4096
+typedef struct kas65_directive {
+    char *name;
+    int value;
+    int addr;
+} kas65_directive;
+
+#define MAX_DIRECTIVE       512
+#define DIRECTIVE_CHAR      24
+#define MAX_LINE_LENGTH     256
+#define MAX_FILE_LINES      2048
 #define INSTRUCTION_COUNT   55
 
 static kas65_instruction_info opcode_array[] = {
@@ -113,15 +123,19 @@ enum {
 
 void kas65_log(int err, char* msg);
 
-kas65_line parse_line(char *buffer);
+kas65_line parse_line(kas65_directive *list, char **buffer, int *directive_count, int current_line, int current_address, bool directive_parsing);
 
 int check_instruction(char *opcode, char *operand1, char *operand2);
 
-int get_instruction_binary(char *opcode, char *operand1, char *operand2);
+int get_instruction_binary(kas65_directive *directives, int current_address, char *opcode, char *operand1, char *operand2);
 
-int parse_number(char *buffer, int index);
+int parse_number(char *buffer, int index, int radix);
+
+int parse_labels_constants(int *current_address, int *index, kas65_directive *list, char *opcode, char *operand1, char *operand2);
 
 void str_to_lower(char *str);
+
+int get_instruction_size(char *opcode, char *operand1, char *operand2);
 
 
 #endif

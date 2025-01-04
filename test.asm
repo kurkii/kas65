@@ -1,7 +1,8 @@
-lda $#0x33 ; load accumulator
-sta $0x800
-
-ldx $0x800
+lda $44
 dex
-stx $0x802
-sbc ($0xFF), Y
+dex
+%og 0x1000
+dex
+lda 322
+.lb label:
+
